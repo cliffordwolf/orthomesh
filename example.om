@@ -1,0 +1,39 @@
+orthomesh_2d
+
+grid_w 4
+grid_h 2
+
+offset_x 1.5
+offset_y 1
+
+geometry
+  default
+  resolution_x 0.3
+  resolution_y 0.3
+endgeometry
+
+geometry
+  point -1 +0.5
+  point  0 -0.3
+  point +1 +0.5
+  resolution_x 0.20
+  resolution_y 0.05
+endgeometry
+
+geometry
+  lines
+  point -1 +0.5
+  point  0 -0.3
+  point +1 +0.5
+  resolution_x 0.20
+  resolution_y 0.10
+  radius 0.1
+endgeometry
+
+geometry
+  point 1 0
+  radius 0.7
+  resolution_x 0.05
+endgeometry
+
+end

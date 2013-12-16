@@ -1,0 +1,18 @@
+
+Orthomesh -- Orthogonal Delaunay Mesh Generator
+-----------------------------------------------
+
+Orthomesh is a 2D Mesh Generator that creates quad-tree based meshes that can
+be independently refined in X- and Y-direction. Therefor the generated meshes
+can contains flat segments. This is for example useful for simulating
+transistor gates in TCAD applications, that require high resolutions toward the
+gate insulator but only low resolution parallel to it.
+
+The mesher can be used from the command line using a simple text-based input
+format, but is most powerful when used via its C++ API.
+
+An extension of the basic principle to 3D is possible and under consideration
+by the author. It is mainly a question of time..
+
+See http://www.clifford.at/orthomesh/ for details.
+
