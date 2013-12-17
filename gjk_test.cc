@@ -92,7 +92,7 @@ struct MyConvexHull : GJK<T>
 
 	virtual void gjk_support(T p[3])
 	{
-		GJK_Hull3D<T> worker(&points[0], points.size() / 3);
+		GJK_Hull3D<T> worker(&points[0], points.size());
 		worker.gjk_support(p);
 	}
 };

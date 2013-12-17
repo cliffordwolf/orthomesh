@@ -161,7 +161,7 @@ static void syntax_error(int linec, std::string token = std::string(), std::stri
 
 struct geometry_2d_data_t
 {
-	std::string tag;
+	std::string tag, color;
 	double resolution_x, resolution_y;
 	bool default_geometry;
 
@@ -204,7 +204,7 @@ struct Omesh2d_GJK : Omesh2d
 		double y2 = y1 + size_y * OMESH2D_STEP;
 
 		double gjk_points[8] = { x1, y1, x2, y1, x2, y2, x1, y2 };
-		GJK_Hull2D<double> gjk_box(gjk_points, 4);
+		GJK_Hull2D<double> gjk_box(gjk_points, 8);
 
 		for (auto &g : geometries)
 		{
@@ -224,6 +224,36 @@ struct Omesh2d_GJK : Omesh2d
 
 		refine_x = max_x < size_x * OMESH2D_STEP;
 		refine_y = max_y < size_y * OMESH2D_STEP;
+	}
+
+	virtual std::string getcolor(int32_t major_x, int32_t major_y, std::vector<int32_t> &minor_xy)
+	{
+		std::string default_color = "gray";
+
+		std::vector<double> gjk_points;
+		for (size_t i = 0; i < minor_xy.size(); i += 2) {
+			gjk_points.push_back(major_x + minor_xy[i+0] * OMESH2D_STEP);
+			gjk_points.push_back(major_y + minor_xy[i+1] * OMESH2D_STEP);
+		}
+
+		GJK_Hull2D<double> gjk_hull(&gjk_points[0], gjk_points.size());
+
+		for (auto &g : geometries)
+		{
+			if (g.color.empty())
+				continue;
+
+			if (g.default_geometry)
+				default_color = g.color;
+
+			for (auto gjk_ptr : g.gjk_supports) {
+				GJK_MinkowskiDifference<double> gjk(&gjk_hull, gjk_ptr);
+				if (gjk.gjk_analyze())
+					return g.color;
+			}
+		}
+
+		return default_color;
 	}
 };
 
@@ -352,6 +382,13 @@ static void orthomesh_2d(FILE *f, int &linec, FILE *f_out, orthomes_options_t &o
 					continue;
 				}
 
+				if (tok == "color") {
+					if (!g.color.empty())
+						other_error(linec, "duplicate color");
+					g.color = next_token(f, linec);
+					continue;
+				}
+
 				if (tok == "tag") {
 					if (!g.tag.empty())
 						other_error(linec, "duplicate tag");
@@ -363,7 +400,7 @@ static void orthomesh_2d(FILE *f, int &linec, FILE *f_out, orthomes_options_t &o
 					break;
 
 				syntax_error(linec, tok, "'default', 'points', 'lines', 'triangles', 'point', "
-						"'radius', 'resolution_x', 'resolution_y', 'tag', or 'endgeometry'");
+						"'radius', 'resolution_x', 'resolution_y', 'color', 'tag', or 'endgeometry'");
 			}
 
 			if (mode == "default")
@@ -411,7 +448,7 @@ static void orthomesh_2d(FILE *f, int &linec, FILE *f_out, orthomes_options_t &o
 					} else
 						g.gjk_data.back()->swap(xy_data);
 
-					g.gjk_supports.push_back(new GJK_Hull2D<double>(&g.gjk_data.back()->at(0), g.gjk_data.back()->size()/2));
+					g.gjk_supports.push_back(new GJK_Hull2D<double>(&g.gjk_data.back()->at(0), g.gjk_data.back()->size()));
 
 					if (set_radius)
 					{

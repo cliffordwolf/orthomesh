@@ -58,6 +58,9 @@ struct Omesh2d
 	// refinement interface for the user
 	virtual void refine(int32_t major_x, int32_t major_y, int32_t minor_x, int32_t minor_y, int32_t size_x, int32_t size_y, bool &refine_x, bool &refine_y) { };
 
+	// coloring interface (used by svg writers)
+	virtual std::string getcolor(int32_t major_x, int32_t major_y, std::vector<int32_t> &minor_xy) { return "gray"; };
+
 	// data structures
 	struct Coordinate;
 	struct CellType;
@@ -99,6 +102,7 @@ struct Omesh2d
 	// SVG and HTML output functions
 	static void svg_write_delaunay(FILE *f, const Omesh2d::Geometry &geom);
 	static void svg_write_voronoi(FILE *f, const Omesh2d::Geometry &geom);
+	void svg_write_delaunay(FILE *f, const Omesh2d::Coordinate &coord);
 	void svg_write_grid(FILE *f, double scale = 100, bool container = true);
 	void html_write_celltype(FILE *f, const Omesh2d::CellType &ctype);
 };
