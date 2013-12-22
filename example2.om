@@ -1,0 +1,103 @@
+orthomesh_2d
+
+grid_w 2
+grid_h 2
+
+geometry
+  default
+  resolution_x 0.5
+  resolution_y 0.5
+endgeometry
+
+geometry
+  lines
+  point 0.000 1.485
+  point 0.695 1.485
+  point 0.695 0.485
+  point 1.305 0.485
+  point 1.305 1.485
+  point 2.000 1.485
+  color yellow
+endgeometry
+
+geometry
+  triangles
+  point 0.0 1.5
+  point 0.7 1.5
+  point 0.0 1.6
+  point 0.7 1.5
+  point 0.7 1.6
+  point 1.3 1.6
+  point 0.7 0.5
+  point 1.3 0.5
+  point 1.3 1.6
+  point 1.3 1.5
+  point 2.0 1.5
+  point 1.3 1.6
+  point 2.0 1.6
+  resolution_x 0.1
+  resolution_y 0.1
+  color red
+endgeometry
+
+geometry
+  point 0.0 1.6
+  point 2.0 1.6
+  point 0.0 2.0
+  point 2.0 2.0
+  color red
+endgeometry
+
+geometry
+  lines
+  point 0.000 1.485
+  point 0.695 1.485
+  point 0.695 0.485
+  point 1.305 0.485
+  point 1.305 1.485
+  point 2.000 1.485
+  color blue
+  radius 0.15
+endgeometry
+
+geometry
+  point 0.00 1.50
+  point 0.75 1.50
+  point 0.00 1.52
+  point 0.75 1.52
+  resolution_y 0.01
+endgeometry
+
+geometry
+  point 1.25 1.50
+  point 2.00 1.50
+  point 1.25 1.52
+  point 2.00 1.52
+  resolution_y 0.01
+endgeometry
+
+geometry
+  point 0.70 0.50
+  point 1.30 0.50
+  point 0.70 0.55
+  point 1.30 0.55
+  resolution_y 0.01
+endgeometry
+
+geometry
+  point 0.70 0.50
+  point 0.75 0.50
+  point 0.70 1.55
+  point 0.75 1.55
+  resolution_x 0.01
+endgeometry
+
+geometry
+  point 1.25 0.50
+  point 1.30 0.50
+  point 1.25 1.55
+  point 1.30 1.55
+  resolution_x 0.01
+endgeometry
+
+end

@@ -337,17 +337,17 @@ template<typename T>
 struct GJK_Hull3D : GJK<T>
 {
 	T *gjk_points;
-	int gjk_points_n;
+	int gjk_points_sz;
 
-	GJK_Hull3D(T *gjk_points, int gjk_points_n) :
-			gjk_points(gjk_points), gjk_points_n(gjk_points_n) { }
+	GJK_Hull3D(T *gjk_points, int gjk_points_sz) :
+			gjk_points(gjk_points), gjk_points_sz(gjk_points_sz) { }
 
 	inline virtual void gjk_support(T dir[3])
 	{
 		T best_norm = 0;
 		int best_idx = 0;
 
-		for (int i = 0; i < 3*gjk_points_n; i += 3) {
+		for (int i = 0; i < gjk_points_sz; i += 3) {
 			T this_norm = GJK_dot(dir, gjk_points+i);
 			if (i == 0 || this_norm > best_norm)
 				best_norm = this_norm, best_idx = i;
@@ -361,17 +361,17 @@ template<typename T>
 struct GJK_Hull2D : GJK<T>
 {
 	T *gjk_points;
-	int gjk_points_n;
+	int gjk_points_sz;
 
-	GJK_Hull2D(T *gjk_points, int gjk_points_n) :
-			gjk_points(gjk_points), gjk_points_n(gjk_points_n) { }
+	GJK_Hull2D(T *gjk_points, int gjk_points_sz) :
+			gjk_points(gjk_points), gjk_points_sz(gjk_points_sz) { }
 
 	inline virtual void gjk_support(T dir[3])
 	{
 		T best_norm = 0;
 		int best_idx = 0;
 
-		for (int i = 0; i < 2*gjk_points_n; i += 2) {
+		for (int i = 0; i < gjk_points_sz; i += 2) {
 			T this_norm = dir[0]*gjk_points[i] + dir[1]*gjk_points[i+1];
 			if (i == 0 || this_norm > best_norm)
 				best_norm = this_norm, best_idx = i;

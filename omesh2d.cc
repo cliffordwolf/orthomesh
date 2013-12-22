@@ -1153,6 +1153,39 @@ void Omesh2d::svg_write_voronoi(FILE *f, const Omesh2d::Geometry &geom)
 	}
 }
 
+void Omesh2d::svg_write_delaunay(FILE *f, const Omesh2d::Coordinate &coord)
+{
+	Omesh2d::Geometry &geom = geometries.at(grid.at(coord));
+	int shift = OMESH2D_BITS - count_trailing_zeros(coord.size);
+
+	for (const auto &seg : geom.segments)
+	{
+		Vector2f C(0, 0);
+		std::vector<Vector2f> Q;
+		for (auto &p : seg.points) {
+			C += Vector2f(p.first * OMESH2D_STEP, p.second * OMESH2D_STEP) / seg.points.size();
+			Q.push_back(Vector2f(p.first * OMESH2D_STEP, p.second * OMESH2D_STEP));
+		}
+
+		std::sort(Q.begin(), Q.end(), [&](const Vector2f &A, const Vector2f &B) -> bool { return atan2(A[1] - C[1], A[0] - C[0]) < atan2(B[1] - C[1], B[0] - C[0]); });
+
+		std::vector<int32_t> minor_xy;
+		for (auto &p : seg.points) {
+			minor_xy.push_back((p.first >> shift) + coord.minor_x);
+			minor_xy.push_back((p.second >> shift) + coord.minor_y);
+		}
+
+		fprintf(f, "<polygon fill='%s' transform='translate(%f, %f) scale(%f, %f)' points='",
+				getcolor(coord.major_x, coord.major_y, minor_xy).c_str(),
+				coord.major_x + coord.minor_x * OMESH2D_STEP,
+				coord.major_y + coord.minor_y * OMESH2D_STEP,
+				coord.size * OMESH2D_STEP, coord.size * OMESH2D_STEP);
+		for (size_t i = 0; i < Q.size(); i++)
+			fprintf(f, "%s%f,%f", i ? " " : "", Q[i][0], Q[i][1]);
+		fprintf(f, "'/>\n");
+	}
+}
+
 void Omesh2d::svg_write_grid(FILE *f, double scale, bool container)
 {
 	if (container) {
@@ -1164,13 +1197,9 @@ void Omesh2d::svg_write_grid(FILE *f, double scale, bool container)
 	for (auto &it : grid)
 	{
 		auto &coord = it.first;
-		auto &geom = geometries.at(it.second);
-
-		fprintf(f, "<g fill='gray' stroke='black' stroke-width='%f' transform='scale(%f, %f) translate(%f, %f) scale(%f, %f)'>\n",
-				(0.5 / scale) / (coord.size * OMESH2D_STEP), scale, scale,
-				coord.major_x + coord.minor_x * OMESH2D_STEP, coord.major_y + coord.minor_y * OMESH2D_STEP,
-				coord.size * OMESH2D_STEP, coord.size * OMESH2D_STEP);
-		svg_write_delaunay(f, geom);
+		fprintf(f, "<g stroke='black' stroke-width='%f' transform='scale(%f, %f)'>\n",
+				(0.5 / scale) / (it.first.size * OMESH2D_STEP), scale, scale);
+		svg_write_delaunay(f, coord);
 		fprintf(f, "</g>\n");
 	}
 
