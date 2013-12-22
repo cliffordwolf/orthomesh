@@ -43,116 +43,124 @@ struct orthomes_options_t
  *                              lexer API                                *
  *************************************************************************/
 
-static int fgetc_skip_comment(FILE *f)
+struct Lexer
 {
-	int ch = fgetc(f);
+	FILE *f;
+	int linec;
 
-	if (ch == '#') {
-		do {
-			ch = fgetc(f);
-		} while (ch != '\r' && ch != '\n' && ch > 0);
+	Lexer(FILE *f) : f(f), linec(1) { }
+
+	int fgetc_skip_comment()
+	{
+		int ch = fgetc(f);
+
+		if (ch == '#') {
+			do {
+				ch = fgetc(f);
+			} while (ch != '\r' && ch != '\n' && ch > 0);
+		}
+
+		return ch;
 	}
 
-	return ch;
-}
+	std::string next_token(bool except_eol = false)
+	{
+		std::string tok;
 
-static std::string next_token(FILE *f, int linec, bool except_eol = false)
-{
-	std::string tok;
+		int ch = fgetc_skip_comment();
+		while (ch == ' ' || ch == '\t')
+			ch = fgetc_skip_comment();
 
-	int ch = fgetc_skip_comment(f);
-	while (ch == ' ' || ch == '\t')
-		ch = fgetc_skip_comment(f);
-
-	if (ch == '\r' || ch == '\n') {
-		if (!except_eol) {
-			fprintf(stderr, "Unexpected end of line in line %d!\n", linec);
-			exit(1);
+		if (ch == '\r' || ch == '\n') {
+			if (!except_eol) {
+				fprintf(stderr, "Unexpected end of line in line %d!\n", linec);
+				exit(1);
+			}
+			ungetc(ch, f);
+			return tok;
 		}
+
+		do {
+			if (ch < 0) {
+				fprintf(stderr, "Unexpected end of file in line %d!\n", linec);
+				exit(1);
+			}
+
+			tok += ch;
+			ch = fgetc_skip_comment();
+		} while (ch != ' ' && ch != '\t' && ch != '\r' && ch != '\n');
+
 		ungetc(ch, f);
 		return tok;
 	}
 
-	do {
-		if (ch < 0) {
-			fprintf(stderr, "Unexpected end of file in line %d!\n", linec);
+	void next_line()
+	{
+		int count_r = 0, count_n = 0;
+		int ch = fgetc_skip_comment();
+
+		while (ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n') {
+			if (ch == '\r')
+				count_r++;
+			if (ch == '\n')
+				count_n++;
+			ch = fgetc_skip_comment();
+		}
+
+		if (count_r == 0 && count_n == 0) {
+			fprintf(stderr, "Expected end of line in line %d, but got more input!\n", linec);
 			exit(1);
 		}
 
-		tok += ch;
-		ch = fgetc_skip_comment(f);
-	} while (ch != ' ' && ch != '\t' && ch != '\r' && ch != '\n');
-
-	ungetc(ch, f);
-	return tok;
-}
-
-static void next_line(FILE *f, int &linec)
-{
-	int count_r = 0, count_n = 0;
-	int ch = fgetc_skip_comment(f);
-
-	while (ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n') {
-		if (ch == '\r')
-			count_r++;
-		if (ch == '\n')
-			count_n++;
-		ch = fgetc_skip_comment(f);
+		ungetc(ch, f);
+		linec += std::max(count_r, count_n);
 	}
 
-	if (count_r == 0 && count_n == 0) {
-		fprintf(stderr, "Expected end of line in line %d, but got more input!\n", linec);
+	int32_t parse_int(std::string token)
+	{
+		const char *p = token.c_str();
+		char *endptr;
+		long long v = strtoll(p, &endptr, 0);
+
+		if (*p == 0 || *endptr != 0) {
+			fprintf(stderr, "Expected integer in line %d, but got '%s' instead!\n", linec, p);
+			exit(1);
+		}
+
+		return v;
+	}
+
+	double parse_float(std::string token)
+	{
+		const char *p = token.c_str();
+		char *endptr;
+		double v = strtod(p, &endptr);
+
+		if (*p == 0 || *endptr != 0) {
+			fprintf(stderr, "Expected real number in line %d, but got '%s' instead!\n", linec, p);
+			exit(1);
+		}
+
+		return v;
+	}
+
+	void other_error(std::string errmsg)
+	{
+		fprintf(stderr, "Error '%s' in line %d!\n", errmsg.c_str(), linec);
 		exit(1);
 	}
 
-	ungetc(ch, f);
-	linec += std::max(count_r, count_n);
-}
-
-static int32_t parse_int(int linec, std::string token)
-{
-	const char *p = token.c_str();
-	char *endptr;
-	long long v = strtoll(p, &endptr, 0);
-
-	if (*p == 0 || *endptr != 0) {
-		fprintf(stderr, "Expected integer in line %d, but got '%s' instead!\n", linec, p);
+	void syntax_error(std::string token = std::string(), std::string expected = std::string())
+	{
+		if (token.empty())
+			fprintf(stderr, "Syntax error in line %d!\n", linec);
+		else if (expected.empty())
+			fprintf(stderr, "Syntax error near token '%s' in line %d!\n", token.c_str(), linec);
+		else
+			fprintf(stderr, "Syntax error near token '%s' in line %d, expected %s!\n", token.c_str(), linec, expected.c_str());
 		exit(1);
 	}
-
-	return v;
-}
-
-static double parse_float(int linec, std::string token)
-{
-	const char *p = token.c_str();
-	char *endptr;
-	double v = strtod(p, &endptr);
-
-	if (*p == 0 || *endptr != 0) {
-		fprintf(stderr, "Expected real number in line %d, but got '%s' instead!\n", linec, p);
-		exit(1);
-	}
-
-	return v;
-}
-
-static void other_error(int linec, std::string errmsg)
-{
-	fprintf(stderr, "Error '%s' in line %d!\n", errmsg.c_str(), linec);
-	exit(1);
-}
-
-static void syntax_error(int linec, std::string token = std::string(), std::string expected = std::string())
-{
-	if (token.empty())
-		fprintf(stderr, "Syntax error in line %d!\n", linec);
-	else if (expected.empty())
-		fprintf(stderr, "Syntax error near token '%s' in line %d!\n", token.c_str(), linec);
-	else
-		fprintf(stderr, "Syntax error near token '%s' in line %d, expected %s!\n", token.c_str(), linec, expected.c_str());
-	exit(1);
-}
+};
 
 
 /*************************************************************************
@@ -227,7 +235,7 @@ struct Omesh2d_GJK : Omesh2d
 	}
 };
 
-static void orthomesh_2d(FILE *f, int &linec, FILE *f_out, orthomes_options_t &options)
+static void orthomesh_2d(Lexer &lex, FILE *f_out, orthomes_options_t &options)
 {
 	std::string tok;
 
@@ -247,58 +255,58 @@ static void orthomesh_2d(FILE *f, int &linec, FILE *f_out, orthomes_options_t &o
 
 	while (1)
 	{
-		next_line(f, linec);
-		tok = next_token(f, linec);
+		lex.next_line();
+		tok = lex.next_token();
 
 		if (tok == "verbose") {
 			if (set_verbose)
-				other_error(linec, "duplicate verbose");
-			verbose = parse_int(linec, next_token(f, linec));
+				lex.other_error("duplicate verbose");
+			verbose = lex.parse_int(lex.next_token());
 			set_verbose = true;
 			continue;
 		}
 
 		if (tok == "split_slice") {
 			if (set_split_slice)
-				other_error(linec, "duplicate split_slice");
-			split_slice = parse_int(linec, next_token(f, linec));
+				lex.other_error("duplicate split_slice");
+			split_slice = lex.parse_int(lex.next_token());
 			set_split_slice = true;
 			continue;
 		}
 
 		if (tok == "grid_w") {
 			if (set_grid_w)
-				other_error(linec, "duplicate grid_w");
-			grid_w = parse_int(linec, next_token(f, linec));
+				lex.other_error("duplicate grid_w");
+			grid_w = lex.parse_int(lex.next_token());
 			set_grid_w = true;
 			continue;
 		}
 
 		if (tok == "grid_h") {
 			if (set_grid_h)
-				other_error(linec, "duplicate grid_h");
-			grid_h = parse_int(linec, next_token(f, linec));
+				lex.other_error("duplicate grid_h");
+			grid_h = lex.parse_int(lex.next_token());
 			set_grid_h = true;
 			continue;
 		}
 
 		if (tok == "offset_x") {
-			offset_x = parse_float(linec, next_token(f, linec));
+			offset_x = lex.parse_float(lex.next_token());
 			continue;
 		}
 
 		if (tok == "offset_y") {
-			offset_y = parse_float(linec, next_token(f, linec));
+			offset_y = lex.parse_float(lex.next_token());
 			continue;
 		}
 
 		if (tok == "scale") {
-			scale = parse_float(linec, next_token(f, linec));
+			scale = lex.parse_float(lex.next_token());
 			continue;
 		}
 
 		if (tok == "grid_scale") {
-			grid_scale = parse_float(linec, next_token(f, linec));
+			grid_scale = lex.parse_float(lex.next_token());
 			continue;
 		}
 
@@ -313,19 +321,19 @@ static void orthomesh_2d(FILE *f, int &linec, FILE *f_out, orthomes_options_t &o
 
 			while (1)
 			{
-				next_line(f, linec);
-				tok = next_token(f, linec);
+				lex.next_line();
+				tok = lex.next_token();
 
 				if (tok == "default" || tok == "points" || tok == "lines" || tok == "triangles") {
 					if (!mode.empty())
-						other_error(linec, "duplicate mode");
+						lex.other_error("duplicate mode");
 					mode = tok;
 					continue;
 				}
 
 				if (tok == "point") {
-					double x = parse_float(linec, next_token(f, linec));
-					double y = parse_float(linec, next_token(f, linec));
+					double x = lex.parse_float(lex.next_token());
+					double y = lex.parse_float(lex.next_token());
 					xy_data.push_back((x * scale + offset_x) / grid_scale);
 					xy_data.push_back((y * scale + offset_y) / grid_scale);
 					continue;
@@ -333,51 +341,51 @@ static void orthomesh_2d(FILE *f, int &linec, FILE *f_out, orthomes_options_t &o
 
 				if (tok == "radius") {
 					if (set_radius)
-						other_error(linec, "duplicate radius");
-					double r = parse_float(linec, next_token(f, linec));
+						lex.other_error("duplicate radius");
+					double r = lex.parse_float(lex.next_token());
 					radius = r * scale / grid_scale;
 					set_radius = true;
 					continue;
 				}
 
 				if (tok == "resolution_x") {
-					double r = parse_float(linec, next_token(f, linec));
+					double r = lex.parse_float(lex.next_token());
 					g.resolution_x = std::min(g.resolution_x, r * scale / grid_scale);
 					continue;
 				}
 
 				if (tok == "resolution_y") {
-					double r = parse_float(linec, next_token(f, linec));
+					double r = lex.parse_float(lex.next_token());
 					g.resolution_y = std::min(g.resolution_y, r * scale / grid_scale);
 					continue;
 				}
 
 				if (tok == "tag") {
 					if (!g.tag.empty())
-						other_error(linec, "duplicate tag");
-					g.tag = next_token(f, linec);
+						lex.other_error("duplicate tag");
+					g.tag = lex.next_token();
 					continue;
 				}
 
 				if (tok == "endgeometry")
 					break;
 
-				syntax_error(linec, tok, "'default', 'points', 'lines', 'triangles', 'point', "
+				lex.syntax_error("'default', 'points', 'lines', 'triangles', 'point', "
 						"'radius', 'resolution_x', 'resolution_y', 'tag', or 'endgeometry'");
 			}
 
 			if (mode == "default")
 			{
 				if (!xy_data.empty())
-					other_error(linec, "default gemotries may not contain any points");
+					lex.other_error("default gemotries may not contain any points");
 				if (set_radius)
-					other_error(linec, "default gemotries may not contain a radius");
+					lex.other_error("default gemotries may not contain a radius");
 				g.default_geometry = true;
 			}
 			else
 			{
 				if (xy_data.empty())
-					other_error(linec, "need at least one point");
+					lex.other_error("need at least one point");
 
 				size_t cursor = 0;
 
@@ -433,7 +441,7 @@ static void orthomesh_2d(FILE *f, int &linec, FILE *f_out, orthomes_options_t &o
 		if (tok == "end")
 			break;
 
-		syntax_error(linec, tok, "'grid_w', 'grid_h', 'offset_x', 'offset_y', 'scale', 'grid_scale', 'geometry', or 'end'");
+		lex.syntax_error("'grid_w', 'grid_h', 'offset_x', 'offset_y', 'scale', 'grid_scale', 'geometry', or 'end'");
 	}
 
 	Omesh2d_GJK mesher(grid_w, grid_h, geometries);
@@ -510,16 +518,18 @@ print_help:
 		return 1;
 	}
 
-	std::string initial_token = next_token(f_in, linec, true);
+	Lexer lex(f_in);
+
+	std::string initial_token = lex.next_token(true);
 	if (initial_token.empty()) {
-		next_line(f_in, linec);
-		initial_token = next_token(f_in, linec);
+		lex.next_line();
+		initial_token = lex.next_token();
 	}
 
 	if (initial_token == "orthomesh_2d")
-		orthomesh_2d(f_in, linec, f_out, options);
+		orthomesh_2d(lex, f_out, options);
 	else
-		syntax_error(linec, initial_token, "'orthomesh_2d'");
+		lex.syntax_error(initial_token, "'orthomesh_2d'");
 
 	return 0;
 }
