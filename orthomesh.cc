@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <string>
+#include <list>
 
 struct orthomes_options_t
 {
@@ -50,6 +51,9 @@ struct Lexer
 
 	Lexer(FILE *f) : f(f), linec(1) { }
 
+	std::map<std::string, std::vector<std::string>> macros;
+	std::list<std::string> token_queue;
+
 	int fgetc_skip_comment()
 	{
 		int ch = fgetc(f);
@@ -66,6 +70,12 @@ struct Lexer
 	std::string next_token(bool except_eol = false)
 	{
 		std::string tok;
+
+		if (!token_queue.empty()) {
+			tok = token_queue.front();
+			token_queue.pop_front();
+			return tok;
+		}
 
 		int ch = fgetc_skip_comment();
 		while (ch == ' ' || ch == '\t')
@@ -89,8 +99,13 @@ struct Lexer
 			tok += ch;
 			ch = fgetc_skip_comment();
 		} while (ch != ' ' && ch != '\t' && ch != '\r' && ch != '\n');
-
 		ungetc(ch, f);
+
+		if (macros.count(tok) != 0) {
+			token_queue.insert(token_queue.end(), macros.at(tok).begin(), macros.at(tok).end());
+			return next_token(except_eol);
+		}
+
 		return tok;
 	}
 
@@ -287,6 +302,19 @@ static void orthomesh_2d(Lexer &lex, FILE *f_out, orthomes_options_t &options)
 	{
 		lex.next_line();
 		tok = lex.next_token();
+
+		if (tok == "define") {
+			std::string macro_name = lex.next_token();
+			std::vector<std::string> macro_body;
+			while (1) {
+				tok = lex.next_token(true);
+				if (tok.empty())
+					break;
+				macro_body.push_back(tok);
+			}
+			lex.macros[macro_name] = macro_body;
+			continue;
+		}
 
 		if (tok == "verbose") {
 			if (set_verbose)
