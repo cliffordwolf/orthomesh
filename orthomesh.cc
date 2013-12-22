@@ -53,6 +53,7 @@ struct Lexer
 
 	std::map<std::string, std::vector<std::string>> macros;
 	std::list<std::string> token_queue;
+	std::string command_token;
 
 	int fgetc_skip_comment()
 	{
@@ -69,21 +70,22 @@ struct Lexer
 
 	std::string next_token(bool except_eol = false)
 	{
+		int ch;
 		std::string tok;
 
 		if (!token_queue.empty()) {
 			tok = token_queue.front();
 			token_queue.pop_front();
-			return tok;
+			goto return_tok;
 		}
 
-		int ch = fgetc_skip_comment();
+		ch = fgetc_skip_comment();
 		while (ch == ' ' || ch == '\t')
 			ch = fgetc_skip_comment();
 
-		if (ch == '\r' || ch == '\n') {
+		if (ch == '\r' || ch == '\n' || ch == ',') {
 			if (!except_eol) {
-				fprintf(stderr, "Unexpected end of line in line %d!\n", linec);
+				fprintf(stderr, "Unexpected end of line or ',' in line %d!\n", linec);
 				exit(1);
 			}
 			ungetc(ch, f);
@@ -98,7 +100,7 @@ struct Lexer
 
 			tok += ch;
 			ch = fgetc_skip_comment();
-		} while (ch != ' ' && ch != '\t' && ch != '\r' && ch != '\n');
+		} while (ch != ' ' && ch != '\t' && ch != '\r' && ch != '\n' && ch != ',');
 		ungetc(ch, f);
 
 		if (macros.count(tok) != 0) {
@@ -106,6 +108,9 @@ struct Lexer
 			return next_token(except_eol);
 		}
 
+	return_tok:
+		if (command_token.empty())
+			command_token = tok;
 		return tok;
 	}
 
@@ -122,6 +127,11 @@ struct Lexer
 			ch = fgetc_skip_comment();
 		}
 
+		if (ch == ',') {
+			token_queue.insert(token_queue.end(), command_token);
+			return;
+		}
+
 		if (count_r == 0 && count_n == 0) {
 			fprintf(stderr, "Expected end of line in line %d, but got more input!\n", linec);
 			exit(1);
@@ -129,6 +139,7 @@ struct Lexer
 
 		ungetc(ch, f);
 		linec += std::max(count_r, count_n);
+		command_token = std::string();
 	}
 
 	int32_t parse_int(std::string token)

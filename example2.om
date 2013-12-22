@@ -44,96 +44,62 @@ endgeometry
 geometry
   triangles
   point A
-  point B
-  point Ad
-  point B
-  point Bd
-  point Ed
-  point C
-  point D
-  point Ed
-  point E
-  point F
-  point Ed
-  point Fd
+  point B,  Ad
+  point B,  Bd
+  point Ed, C
+  point D,  Ed
+  point E,  F
+  point Ed, Fd
   resolution_x 0.1
   resolution_y 0.1
   color red
 endgeometry
 
 geometry
-  point Ad
-  point Fd
-  point Ab
-  point Fb
+  point Ad, Fd, Ab, Fb
   color red
 endgeometry
 
 geometry
   lines
-  point A
-  point B
-  point C
-  point D
-  point E
-  point F
+  point A, B, C, D, E, F
   radius 0.015
   color yellow
 endgeometry
 
 geometry
   lines
-  point A
-  point B
-  point C
-  point D
-  point E
-  point F
+  point A, B, C, D, E, F
   color blue
   radius 0.2
 endgeometry
 
 geometry
-  point A
-  point Ay
-  point Bx
-  point Bxy
+  point A, Ay, Bx, Bxy
   resolution_y 0.01
   radius 0.02
 endgeometry
 
 geometry
-  point F
-  point Fy
-  point Ex
-  point Exy
+  point F, Fy, Ex, Exy
   resolution_y 0.01
   radius 0.02
 endgeometry
 
 geometry
-  point C
-  point D
-  point Cy
-  point Dy
+  point C, D, Cy, Dy
   resolution_y 0.01
   radius 0.02
 endgeometry
 
 geometry
-  point C
-  point Cx
-  point By
-  point Bxy
+  point C, Cx, By, Bxy
   resolution_x 0.01
   radius 0.02
 endgeometry
 
 geometry
-  point D
-  point Dx
-  point Ey
-  point Ex
+  point D, Dx, Ey, Ex
   resolution_x 0.01
   radius 0.02
 endgeometry
